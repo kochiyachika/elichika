@@ -2,6 +2,7 @@ package router
 
 import (
 	"elichika/handler"
+	handler_live "elichika/handler/live"
 	"elichika/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -34,17 +35,21 @@ func Router(r *gin.Engine) {
 		api.POST("/lesson/resultLesson", handler.ResultLesson)
 		api.POST("/lesson/saveDeck", handler.SaveDeckLesson)
 		api.POST("/lesson/skillEditResult", handler.SkillEditResult)
+		api.POST("/lesson/changeDeckNameLessonDeck", handler.ChangeDeckNameLessonDeck)
 		api.POST("/liveDeck/fetchLiveDeckSelect", handler.FetchLiveDeckSelect)
+		api.POST("/liveDeck/changeDeckNameLiveDeck", handler.ChangeDeckNameLiveDeck)
 		api.POST("/liveDeck/saveDeckAll", handler.SaveDeckAll)
 		api.POST("/liveDeck/saveDeck", handler.SaveDeck)
 		api.POST("/liveDeck/saveSuit", handler.SaveSuit)
-		api.POST("/live/fetchLiveMusicSelect", handler.FetchLiveMusicSelect)
-		api.POST("/live/finish", handler.LiveFinish)
+		api.POST("/live/fetchLiveMusicSelect", handler_live.FetchLiveMusicSelect)
+		api.POST("/live/start", handler_live.LiveStart)
+		api.POST("/live/finish", handler_live.LiveFinish)
+		api.POST("/live/skip", handler_live.LiveSkip)
+		api.POST("/live/updatePlayList", handler_live.LiveUpdatePlayList)
 		api.POST("/liveMv/saveDeck", handler.LiveMvSaveDeck)
 		api.POST("/liveMv/start", handler.LiveMvStart)
-		api.POST("/livePartners/fetch", handler.FetchLivePartners)
+		api.POST("/livePartners/fetch", handler_live.FetchLivePartners)
 		api.POST("/livePartners/setLivePartner", handler.SetLivePartner)
-		api.POST("/live/start", handler.LiveStart)
 		api.POST("/login/login", handler.Login)
 		api.POST("/login/startup", handler.StartUp)
 		api.POST("/mission/clearMissionBadge", handler.ClearMissionBadge)
@@ -65,11 +70,16 @@ func Router(r *gin.Engine) {
 		api.POST("/trainingTree/gradeUpCard", handler.GradeUpCard)
 		api.POST("/infoTrigger/read", handler.TriggerRead)
 		api.POST("/infoTrigger/readCardGradeUp", handler.TriggerReadCardGradeUp)
+		api.POST("/infoTrigger/readMemberLoveLevelUp", handler.TriggerReadMemberLoveLevelUp)
 		api.POST("/trainingTree/activateTrainingTreeCell", handler.ActivateTrainingTreeCell)
 		api.POST("/userProfile/fetchProfile", handler.FetchProfile)
 		api.POST("/userProfile/setProfile", handler.SetProfile)
 		api.POST("/userProfile/setRecommendCard", handler.SetRecommendCard)
+		api.POST("/userProfile/setScoreLive", handler.SetScoreOrComboLive)
+		api.POST("/userProfile/setCommboLive", handler.SetScoreOrComboLive) // setCommboLive is a typo in the client?
 		api.POST("/gdpr/updateConsentState", handler.UpdateConsentState)
 		api.POST("/member/openMemberLovePanel", handler.OpenMemberLovePanel)
+		api.POST("/gacha/fetchGachaMenu", handler.FetchGachaMenu)
+		api.POST("/gacha/draw", handler.GachaDraw)
 	}
 }

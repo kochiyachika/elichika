@@ -4,6 +4,8 @@ import (
 	"elichika/model"
 
 	"fmt"
+
+	"xorm.io/xorm"
 )
 
 func (session *Session) GetLessonDeck(userLessonDeckId int) model.UserLessonDeck {
@@ -28,12 +30,12 @@ func (session *Session) UpdateLessonDeck(userLessonDeck model.UserLessonDeck) {
 	session.UserLessonDeckDiffs[userLessonDeck.UserLessonDeckID] = userLessonDeck
 }
 
-func (session *Session) FinalizeUserLessonDeckDiffs() []any {
+func (session *Session) FinalizeUserLessonDeckDiffs(dbSession *xorm.Session) []any {
 	userLessonDeckByID := []any{}
 	for userLessonDeckId, userLessonDeck := range session.UserLessonDeckDiffs {
 		userLessonDeckByID = append(userLessonDeckByID, userLessonDeckId)
 		userLessonDeckByID = append(userLessonDeckByID, userLessonDeck)
-		affected, err := Engine.Table("s_user_lesson_deck").
+		affected, err := dbSession.Table("s_user_lesson_deck").
 			Where("user_id = ? AND user_lesson_deck_id = ?", session.UserStatus.UserID, userLessonDeckId).
 			AllCols().Update(userLessonDeck)
 		if (err != nil) || (affected != 1) {

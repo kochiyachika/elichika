@@ -15,7 +15,7 @@ var (
 )
 
 func (session *Session) AddRewardContent(reward model.RewardByContent) {
-	fmt.Println(reward)
+	// fmt.Println(reward)
 	handler, exists := RewardHandler[reward.ContentType]
 	if !exists {
 		fmt.Println("TODO: Add reward for content type ", reward.ContentType)

@@ -93,7 +93,7 @@ func Login(ctx *gin.Context) {
 	newKey = utils.Xor(newKey, jaKey)
 	newKey64 := base64.StdEncoding.EncodeToString(newKey)
 	// fmt.Println("Session Key:", newKey64)
-	serverdb.InitDb(IsGlobal)
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	session.UserStatus.LastLoginAt = time.Now().Unix()
 
@@ -184,7 +184,7 @@ func Login(ctx *gin.Context) {
 		userSuits = append(userSuits, userSuit)
 	}
 	loginBody, err = sjson.Set(loginBody, "user_model.user_suit_by_suit_id", userSuits)
-	CheckErr(err)
+	utils.CheckErr(err)
 
 	// user accessory
 	var UserAccessory []any
@@ -192,11 +192,34 @@ func Login(ctx *gin.Context) {
 		gjson.Parse(GetUserAccessoryData()).Get("user_accessory_by_user_accessory_id").String()))
 	decoder.UseNumber()
 	err = decoder.Decode(&UserAccessory)
-	CheckErr(err)
+	utils.CheckErr(err)
 	loginBody, _ = sjson.Set(loginBody, "user_model.user_accessory_by_user_accessory_id", UserAccessory)
 
+	// song records
+	// if return empty, all the song are unlocked, except for bond episide unlocked song
+	dbLiveRecords := session.GetAllLiveRecords()
+	userLiveRecords := []any{}
+	for _, userLiveRecord := range dbLiveRecords {
+		userLiveRecords = append(userLiveRecords, userLiveRecord.LiveDifficultyID)
+		userLiveRecords = append(userLiveRecords, userLiveRecord)
+	}
+	loginBody, err = sjson.Set(loginBody, "user_model.user_live_difficulty_by_difficulty_id", userLiveRecords)
+	utils.CheckErr(err)
+
+	// playlist
+	dbPlaylist := session.GetUserPlayList()
+	loginBody, err = sjson.Set(loginBody, "user_model.user_play_list_by_id", dbPlaylist)
+	utils.CheckErr(err)
+
+	// triggers
+	triggersBasics := session.GetAllTriggerBasics()
+	loginBody, err = sjson.Set(loginBody, "user_model.user_info_trigger_basic_by_trigger_id", triggersBasics)
+	utils.CheckErr(err)
+	triggersCardGradeUps := session.GetAllTriggerCardGradeUps()
+	loginBody, err = sjson.Set(loginBody, "user_model.user_info_trigger_card_grade_up_by_trigger_id", triggersCardGradeUps)
+	utils.CheckErr(err)
+
 	/* ======== UserData ======== */
-	// fmt.Println(loginBody)
 	resp := SignResp(ctx.GetString("ep"), loginBody, config.SessionKey)
 	ctx.Header("Content-Type", "application/json")
 	ctx.String(http.StatusOK, resp)

@@ -85,17 +85,9 @@ type UserBasicInfo struct {
 	IsRequestPending bool   `xorm:"-" json:"is_request_pending"`
 }
 
-type DBUserProfileLiveStats struct {
-	LivePlayCount10  int `xorm:"default 0"`
-	LivePlayCount20  int `xorm:"default 0"`
-	LivePlayCount30  int `xorm:"default 0"`
-	LivePlayCount35  int `xorm:"default 0"`
-	LivePlayCount40  int `xorm:"default 0"`
-	LiveClearCount10 int `xorm:"default 0"`
-	LiveClearCount20 int `xorm:"default 0"`
-	LiveClearCount30 int `xorm:"default 0"`
-	LiveClearCount35 int `xorm:"default 0"`
-	LiveClearCount40 int `xorm:"default 0"`
+type UserProfileLiveStats struct {
+	LivePlayCount  [5]int `xorm:"'live_play_count'"`
+	LiveClearCount [5]int `xorm:"'live_clear_count'"`
 }
 
 type UserProfileInfo struct {
@@ -135,4 +127,11 @@ type Profile struct {
 	MemberInfo struct {
 		UserMembers []MemberPublicInfo `json:"user_members"`
 	} `xorm:"-" json:"member_info"`
+}
+
+type UserCustomSetProfile struct {
+	UserID                  int `xorm:"'user_id'" json:"-"`
+	UserSetProfileID        int `xorm:"-" json:"user_set_profile_id"` // always 0
+	VoltageLiveDifficultyID int `xorm:"'voltage_live_difficulty_id'" json:"voltage_live_difficulty_id"`
+	ComboLiveDifficultyID   int `xorm:"'commbo_live_difficulty_id'" json:"commbo_live_difficulty_id"`
 }

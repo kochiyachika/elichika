@@ -1,9 +1,9 @@
 package serverdb
 
 import (
+	"elichika/enum"
 	"elichika/klab"
 	"elichika/model"
-	"elichika/enum"
 
 	"fmt"
 	"xorm.io/xorm"
@@ -47,12 +47,12 @@ func (session *Session) InsertMembers(members []model.UserMemberInfo) {
 	fmt.Println("Inserted ", affected, " members")
 }
 
-func (session *Session) FinalizeUserMemberDiffs() []any {
+func (session *Session) FinalizeUserMemberDiffs(dbSession *xorm.Session) []any {
 	userMemberByMemberID := []any{}
 	for memberMasterID, member := range session.UserMemberDiffs {
 		userMemberByMemberID = append(userMemberByMemberID, memberMasterID)
 		userMemberByMemberID = append(userMemberByMemberID, member)
-		affected, err := Engine.Table("s_user_member").
+		affected, err := dbSession.Table("s_user_member").
 			Where("user_id = ? AND member_master_id = ?", session.UserStatus.UserID, memberMasterID).AllCols().Update(member)
 		if (err != nil) || (affected != 1) {
 			panic(err)
@@ -61,13 +61,13 @@ func (session *Session) FinalizeUserMemberDiffs() []any {
 	return userMemberByMemberID
 }
 
-
-func (session *Session) AddLovePoint(memberID, point int) {
+// add love point and return the love point added (in case maxed out)
+func (session *Session) AddLovePoint(memberID, point int) int {
 	member := session.GetMember(memberID)
-	member.LovePoint += point * 1000
-	if member.LovePoint > member.LovePointLimit {
-		member.LovePoint = member.LovePointLimit
+	if point > member.LovePointLimit-member.LovePoint {
+		point = member.LovePointLimit - member.LovePoint
 	}
+	member.LovePoint += point
 
 	oldLoveLevel := member.LoveLevel
 	member.LoveLevel = klab.BondLevelFromBondValue(member.LovePoint)
@@ -89,8 +89,7 @@ func (session *Session) AddLovePoint(memberID, point int) {
 		currentLovePanel := session.GetMemberLovePanel(memberID)
 		if (currentLovePanel.LovePanelLevel < latestLovePanelLevel) && (len(currentLovePanel.LovePanelLastLevelCellIDs) == 5) {
 			currentLovePanel.LevelUp()
-			session.AddTriggerBasic(&model.TriggerBasic{
-				TriggerID:       0, // filled by session
+			session.AddTriggerBasic(0, &model.TriggerBasic{
 				InfoTriggerType: enum.InfoTriggerTypeUnlockBondBoard,
 				LimitAt:         nil,
 				Description:     nil,
@@ -98,8 +97,13 @@ func (session *Session) AddLovePoint(memberID, point int) {
 
 			session.UpdateMemberLovePanel(currentLovePanel)
 		}
+		session.AddTriggerMemberLoveLevelUp(0,
+			&model.TriggerMemberLoveLevelUp{
+				TriggerID:       0,
+				MemberMasterID:  memberID,
+				BeforeLoveLevel: member.LoveLevel - 1})
 
 	}
-
 	session.UpdateMember(member)
+	return point
 }

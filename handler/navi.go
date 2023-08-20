@@ -14,6 +14,7 @@ import (
 )
 
 func SaveUserNaviVoice(ctx *gin.Context) {
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	signBody := session.Finalize(GetData("saveUserNaviVoice.json"), "user_model")
 	resp := SignResp(ctx.GetString("ep"), signBody, config.SessionKey)
@@ -32,6 +33,7 @@ func TapLovePoint(ctx *gin.Context) {
 	if err := json.Unmarshal([]byte(reqBody), &req); err != nil {
 		panic(err)
 	}
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	session.AddLovePoint(req.MemberMasterID, 20)
 	signBody := session.Finalize(GetData("saveUserNaviVoice.json"), "user_model")

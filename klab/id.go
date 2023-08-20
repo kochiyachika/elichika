@@ -34,3 +34,13 @@ func MemberMasterIDFromSuitMasterID(suitMasterID int) int {
 		return (suitMasterID / 10000) % 1000
 	}
 }
+
+func LiveDifficultyTypeIndexFromLiveDifficultyID(liveDifficultyID int) int {
+	// return the index in enum.LiveDifficultyTypes
+	// only works when is_count_target = 1
+	return (liveDifficultyID/100)%10 - 1
+	// SELECT * FROM m_live_difficulty WHERE is_count_target = 1 AND live_difficulty_type <= 30 AND (live_difficulty_id / 100 % 10) != live_difficulty_type / 10;
+	// SELECT * FROM m_live_difficulty WHERE is_count_target = 1 AND live_difficulty_type == 35 AND (live_difficulty_id / 100 % 10) != 4;
+	// SELECT * FROM m_live_difficulty WHERE is_count_target = 1 AND live_difficulty_type == 37 AND (live_difficulty_id / 100 % 10) != 5;
+
+}

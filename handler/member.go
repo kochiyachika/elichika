@@ -6,6 +6,7 @@ import (
 	"elichika/klab"
 	"elichika/model"
 	"elichika/serverdb"
+	"elichika/utils"
 
 	"encoding/json"
 	"net/http"
@@ -24,7 +25,8 @@ func OpenMemberLovePanel(ctx *gin.Context) {
 	}
 	req := OpenMemberLovePanelReq{}
 	err := json.Unmarshal([]byte(reqBody), &req)
-	CheckErr(err)
+	utils.CheckErr(err)
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	panel := session.GetMemberLovePanel(req.MemberID)
 
@@ -38,8 +40,7 @@ func OpenMemberLovePanel(ctx *gin.Context) {
 			// unlock the next board if available
 			// otherwise it will be unlocked when bond level reach the value
 			panel.LevelUp()
-			session.AddTriggerBasic(&model.TriggerBasic{
-				TriggerID:       0, // filled by session
+			session.AddTriggerBasic(0, &model.TriggerBasic{
 				InfoTriggerType: enum.InfoTriggerTypeUnlockBondBoard,
 				LimitAt:         nil,
 				Description:     nil,

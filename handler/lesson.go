@@ -4,6 +4,7 @@ import (
 	"elichika/config"
 	"elichika/model"
 	"elichika/serverdb"
+	"elichika/utils"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,6 +29,7 @@ func ExecuteLesson(ctx *gin.Context) {
 		panic(err)
 	}
 
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	deckBytes, _ := json.Marshal(session.GetLessonDeck(req.SelectedDeckID))
 	deckInfo := string(deckBytes)
@@ -64,6 +66,7 @@ func ExecuteLesson(ctx *gin.Context) {
 }
 
 func ResultLesson(ctx *gin.Context) {
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	signBody := session.Finalize(GetData("resultLesson.json"), "user_model_diff")
 	signBody, _ = sjson.Set(signBody, "selected_deck_id", session.UserStatus.MainLessonDeckID)
@@ -80,6 +83,7 @@ func SkillEditResult(ctx *gin.Context) {
 
 	req := gjson.Parse(reqBody).Array()[0]
 
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	skillList := req.Get("selected_skill_ids")
 	skillList.ForEach(func(key, cardId gjson.Result) bool {
@@ -109,17 +113,18 @@ func SkillEditResult(ctx *gin.Context) {
 }
 
 func SaveDeckLesson(ctx *gin.Context) {
-	reqBody := gjson.Parse(ctx.GetString("reqBody")).Array()[0]
+	reqBody := gjson.Parse(ctx.GetString("reqBody")).Array()[0].String()
 	// fmt.Println(reqBody)
 	type SaveDeckReq struct {
 		DeckID        int   `json:"deck_id"`
 		CardMasterIDs []int `json:"card_master_ids"`
 	}
 	req := SaveDeckReq{}
-	if err := json.Unmarshal([]byte(reqBody.String()), &req); err != nil {
+	if err := json.Unmarshal([]byte(reqBody), &req); err != nil {
 		panic(err)
 	}
 
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	userLessonDeck := session.GetLessonDeck(req.DeckID)
 	deckByte, _ := json.Marshal(userLessonDeck)
@@ -135,6 +140,26 @@ func SaveDeckLesson(ctx *gin.Context) {
 	resp := SignResp(ctx.GetString("ep"), signBody, config.SessionKey)
 	// fmt.Println(resp)
 
+	ctx.Header("Content-Type", "application/json")
+	ctx.String(http.StatusOK, resp)
+}
+
+func ChangeDeckNameLessonDeck(ctx *gin.Context) {
+	reqBody := gjson.Parse(ctx.GetString("reqBody")).Array()[0].String()
+	type ChangeDeckNameReq struct {
+		DeckID   int    `json:"deck_id"`
+		DeckName string `json:"deck_name"`
+	}
+	req := ChangeDeckNameReq{}
+	err := json.Unmarshal([]byte(reqBody), &req)
+	utils.CheckErr(err)
+	userID := ctx.GetInt("user_id")
+	session := serverdb.GetSession(ctx, userID)
+	lessonDeck := session.GetLessonDeck(req.DeckID)
+	lessonDeck.Name = req.DeckName
+	session.UpdateLessonDeck(lessonDeck)
+	signBody := session.Finalize(GetData("userModel.json"), "user_model")
+	resp := SignResp(ctx.GetString("ep"), signBody, config.SessionKey)
 	ctx.Header("Content-Type", "application/json")
 	ctx.String(http.StatusOK, resp)
 }

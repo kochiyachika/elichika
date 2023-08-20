@@ -2,9 +2,9 @@ package serverdb
 
 import (
 	"elichika/model"
-
 	// "fmt"
 
+	"xorm.io/xorm"
 )
 
 func (session *Session) GetAllMemberLovePanels() []model.UserMemberLovePanel {
@@ -48,10 +48,10 @@ func (session *Session) UpdateMemberLovePanel(panel model.UserMemberLovePanel) {
 	session.UserMemberLovePanelDiffs[panel.MemberID] = panel
 }
 
-func (session *Session) FinalizeMemberLovePanelDiffs() []model.UserMemberLovePanel {
+func (session *Session) FinalizeMemberLovePanelDiffs(dbSession *xorm.Session) []model.UserMemberLovePanel {
 	panels := []model.UserMemberLovePanel{}
 	for _, panel := range session.UserMemberLovePanelDiffs {
-		_, err := Engine.Table("s_user_member").
+		_, err := dbSession.Table("s_user_member").
 			Where("user_id = ? AND member_master_id = ?", panel.UserID, panel.MemberID).
 			AllCols().Update(panel)
 		if err != nil {

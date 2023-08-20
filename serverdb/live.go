@@ -22,7 +22,6 @@ func SaveLiveState(live model.LiveState) {
 func LoadLiveState(userID int) (bool, model.LiveState) {
 	live := model.LiveState{}
 	exists, err := Engine.Table("s_user_live_state").Where("user_id = ?", userID).Get(&live)
-	// fmt.Println(live)
 	if err != nil {
 		panic(err)
 	}

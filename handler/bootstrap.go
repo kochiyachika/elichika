@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	// "github.com/tidwall/sjson"
 	"github.com/tidwall/gjson"
 )
 
@@ -26,7 +25,7 @@ func FetchBootstrap(ctx *gin.Context) {
 		panic(err)
 	}
 
-	// fmt.Println(reqBody)
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	session.UserStatus.BootstrapSifidCheckAt = time.Now().UnixMilli()
 	session.UserStatus.DeviceToken = req.DeviceToken

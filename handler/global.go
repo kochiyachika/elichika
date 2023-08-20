@@ -7,10 +7,10 @@ import (
 	"elichika/utils"
 
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"fmt"
 	"time"
 
 	"github.com/tidwall/gjson"
@@ -26,21 +26,12 @@ var (
 
 	presetDataPath = "assets/preset/"
 	userDataPath   = "assets/userdata/"
-
-	UserID          int
-	ClientTimeStamp int64
 )
 
 func init() {
 	MainEng = config.MainEng
 
 	os.Mkdir(userDataPath, 0755)
-}
-
-func CheckErr(err error) {
-	if err != nil {
-		panic(err)
-	}
 }
 
 func SignResp(ep, body, key string) (resp string) {
@@ -93,9 +84,9 @@ func GetPartyInfoByRoleIds(roleIds []int) (partyIcon int, partyName string) {
 				continue
 			}
 			exists, err := MainEng.Table("m_live_party_name").
-				Where("role_1 = ? AND role_2 = ? AND role_3 = ?", roleIds[i], roleIds[j], roleIds[3 - i - j]).
+				Where("role_1 = ? AND role_2 = ? AND role_3 = ?", roleIds[i], roleIds[j], roleIds[3-i-j]).
 				Cols("name,live_party_icon").Get(&partyName, &partyIcon)
-			CheckErr(err)
+			utils.CheckErr(err)
 			if exists {
 				return
 			}
@@ -108,20 +99,20 @@ func GetPartyInfoByRoleIds(roleIds []int) (partyIcon int, partyName string) {
 func GetRealPartyName(partyName string) (realPartyName string) {
 	_, err := MainEng.Table("m_dictionary").Where("id = ?", strings.ReplaceAll(partyName, "k.", "")).
 		Cols("message").Get(&realPartyName)
-	CheckErr(err)
+	utils.CheckErr(err)
 	return
 }
 
 func GetMemberMasterIdByCardMasterId(cardMasterId int) (memberMasterId int) {
 	_, err := MainEng.Table("m_card").Where("id = ?", cardMasterId).
 		Cols("member_m_id").Get(&memberMasterId)
-	CheckErr(err)
+	utils.CheckErr(err)
 	return
 }
 
 func GetMemberDefaultSuitByCardMasterId(cardMasterId int) int {
 	suitMasterId, err := strconv.Atoi(fmt.Sprintf("10%03d1001", GetMemberMasterIdByCardMasterId(cardMasterId)))
-	CheckErr(err)
+	utils.CheckErr(err)
 
 	return suitMasterId
 }

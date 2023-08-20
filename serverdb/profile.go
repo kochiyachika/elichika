@@ -1,14 +1,12 @@
 package serverdb
 
 import (
+	"elichika/enum"
 	"elichika/klab"
 	"elichika/model"
+	"elichika/utils"
 
 	"encoding/json"
-	"strconv"
-	"strings"
-
-	"github.com/tidwall/gjson"
 )
 
 func FetchDBProfile(userID int, result interface{}) {
@@ -83,9 +81,9 @@ func GetPartnerCardFromUserCard(card model.UserCard) model.PartnerCardInfo {
 	return partnerCard
 }
 
-func GetUserCard(userID, cardMasterID int) model.UserCard {
+func GetOtherUserCard(otherUserID, cardMasterID int) model.UserCard {
 	card := model.UserCard{}
-	exists, err := Engine.Table("s_user_card").Where("user_id = ? AND card_master_id = ?", userID, cardMasterID).
+	exists, err := Engine.Table("s_user_card").Where("user_id = ? AND card_master_id = ?", otherUserID, cardMasterID).
 		Get(&card)
 	if err != nil {
 		panic(err)
@@ -99,7 +97,7 @@ func GetUserCard(userID, cardMasterID int) model.UserCard {
 func (sesison *Session) GetOtherUserBasicProfile(otherUserID int) model.UserBasicInfo {
 	basicInfo := model.UserBasicInfo{}
 	FetchDBProfile(otherUserID, &basicInfo)
-	recommendCard := GetUserCard(otherUserID, basicInfo.RecommendCardMasterID)
+	recommendCard := GetOtherUserCard(otherUserID, basicInfo.RecommendCardMasterID)
 
 	basicInfo.RecommendCardLevel = recommendCard.Level
 	basicInfo.IsRecommendCardImageAwaken = recommendCard.IsAwakeningImage
@@ -111,6 +109,22 @@ func (sesison *Session) GetOtherUserBasicProfile(otherUserID int) model.UserBasi
 	basicInfo.RequestStatus = 3
 	basicInfo.IsRequestPending = false
 	return basicInfo
+}
+
+func GetOtherUserLiveStats(otherUserID int) model.UserProfileLiveStats {
+	stats := model.UserProfileLiveStats{}
+	_, err := Engine.Table("s_user_info").Where("user_id = ?", otherUserID).Get(&stats)
+	utils.CheckErr(err)
+	return stats
+}
+
+func (session *Session) GetUserLiveStats() model.UserProfileLiveStats {
+	return GetOtherUserLiveStats(session.UserStatus.UserID)
+}
+
+func (session *Session) UpdateUserLiveStats(stats model.UserProfileLiveStats) {
+	_, err := Engine.Table("s_user_info").Where("user_id = ?", session.UserStatus.UserID).AllCols().Update(&stats)
+	utils.CheckErr(err)
 }
 
 // fetch profile of another user, from session.UserStatus.UserID's perspective
@@ -125,9 +139,9 @@ func (session *Session) FetchProfile(otherUserID int) model.Profile {
 	if !exists {
 		panic("user doesn't exist")
 	}
-	// recommend card
 
-	recommendCard := GetUserCard(otherUserID, profile.ProfileInfo.BasicInfo.RecommendCardMasterID)
+	// recommend card
+	recommendCard := GetOtherUserCard(otherUserID, profile.ProfileInfo.BasicInfo.RecommendCardMasterID)
 	if err != nil {
 		panic(err)
 	}
@@ -180,33 +194,60 @@ func (session *Session) FetchProfile(otherUserID int) model.Profile {
 			}
 		}
 	}
-	liveStats := model.DBUserProfileLiveStats{}
-	_, err = Engine.Table("s_user_info").Where("user_id = ?", otherUserID).Get(&liveStats)
-	if err != nil {
-		panic(err)
+
+	// live clear stats
+	liveStats := GetOtherUserLiveStats(otherUserID)
+	for i, liveDifficultyType := range enum.LiveDifficultyTypes {
+		profile.PlayInfo.LivePlayCount = append(profile.PlayInfo.LivePlayCount, liveDifficultyType)
+		profile.PlayInfo.LivePlayCount = append(profile.PlayInfo.LivePlayCount, liveStats.LivePlayCount[i])
+		profile.PlayInfo.LiveClearCount = append(profile.PlayInfo.LiveClearCount, liveDifficultyType)
+		profile.PlayInfo.LiveClearCount = append(profile.PlayInfo.LiveClearCount, liveStats.LiveClearCount[i])
 	}
-	jsonByte, err := json.Marshal(liveStats)
-	if err != nil {
-		panic(err)
-	}
-	gjson.Parse(string(jsonByte)).ForEach(func(key, value gjson.Result) bool {
-		songRarity, _ := strconv.Atoi(key.String()[len(key.String())-2:])
-		if strings.Contains(key.String(), "LivePlayCount") {
-			profile.PlayInfo.LivePlayCount = append(profile.PlayInfo.LivePlayCount, songRarity)
-			profile.PlayInfo.LivePlayCount = append(profile.PlayInfo.LivePlayCount, int(value.Int()))
-		} else if strings.Contains(key.String(), "LiveClearCount") {
-			profile.PlayInfo.LiveClearCount = append(profile.PlayInfo.LiveClearCount, songRarity)
-			profile.PlayInfo.LiveClearCount = append(profile.PlayInfo.LiveClearCount, int(value.Int()))
-		}
-		return true
-	})
 
 	Engine.Table("s_user_card").Where("user_id = ?", otherUserID).
 		OrderBy("live_join_count DESC").Limit(3).Find(&profile.PlayInfo.JoinedLiveCardRanking)
 	Engine.Table("s_user_card").Where("user_id = ?", otherUserID).
 		OrderBy("active_skill_play_count DESC").Limit(3).Find(&profile.PlayInfo.PlaySkillCardRanking)
 
+	// custom profile
+	customProfile := GetOtherUserCustomSetProfile(otherUserID)
+	if customProfile.VoltageLiveDifficultyID != 0 {
+		profile.PlayInfo.MaxScoreLiveDifficulty.LiveDifficultyMasterID = customProfile.VoltageLiveDifficultyID
+		profile.PlayInfo.MaxScoreLiveDifficulty.Score =
+			GetOtherUserLiveRecord(otherUserID, customProfile.VoltageLiveDifficultyID).MaxScore
+	}
+	if customProfile.ComboLiveDifficultyID != 0 {
+		profile.PlayInfo.MaxComboLiveDifficulty.LiveDifficultyMasterID = customProfile.ComboLiveDifficultyID
+		profile.PlayInfo.MaxComboLiveDifficulty.Score =
+			GetOtherUserLiveRecord(otherUserID, customProfile.ComboLiveDifficultyID).MaxCombo
+	}
+
 	// can get from members[] to save sql
 	Engine.Table("s_user_member").Where("user_id = ?", otherUserID).Find(&profile.MemberInfo.UserMembers)
 	return profile
+}
+
+func GetOtherUserCustomSetProfile(otherUserID int) model.UserCustomSetProfile {
+	p := model.UserCustomSetProfile{}
+	exists, err := Engine.Table("s_user_custom_set_profile").Where("user_id = ?", otherUserID).Get(&p)
+	utils.CheckErr(err)
+	if !exists {
+		p.UserID = otherUserID
+	}
+	return p
+}
+
+func (session *Session) GetUserCustomSetProfile() model.UserCustomSetProfile {
+	return GetOtherUserCustomSetProfile(session.UserStatus.UserID)
+}
+
+func (session *Session) SetUserCustomSetProfile(p model.UserCustomSetProfile) {
+	affected, err := Engine.Table("s_user_custom_set_profile").Where("user_id = ?", session.UserStatus.UserID).
+		AllCols().Update(&p)
+	utils.CheckErr(err)
+	if affected == 0 {
+		// need to insert
+		affected, err = Engine.Table("s_user_custom_set_profile").Insert(&p)
+		utils.CheckErr(err)
+	}
 }

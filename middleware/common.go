@@ -31,7 +31,8 @@ func Common(ctx *gin.Context) {
 		handler.StartUpKey = "TxQFwgNcKDlesb93"
 	}
 
-	handler.UserID, _ = strconv.Atoi(ctx.Query("u"))
+	UserID, _ := strconv.Atoi(ctx.Query("u"))
+	ctx.Set("user_id", UserID)
 
 	ctx.Set("ep", ctx.Request.URL.String())
 

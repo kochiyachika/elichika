@@ -3,9 +3,9 @@ package handler
 import (
 	"elichika/config"
 	"elichika/serverdb"
+	"elichika/utils"
 
 	"encoding/json"
-	// "fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +23,7 @@ func FetchProfile(ctx *gin.Context) {
 		panic(err)
 	}
 
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	profile := session.FetchProfile(req.UserID)
 
@@ -40,6 +41,7 @@ func FetchProfile(ctx *gin.Context) {
 
 func SetProfile(ctx *gin.Context) {
 	reqBody := ctx.GetString("reqBody")
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	// fmt.Println(reqBody)
 
@@ -62,6 +64,7 @@ func SetProfile(ctx *gin.Context) {
 func SetRecommendCard(ctx *gin.Context) {
 	reqBody := ctx.GetString("reqBody")
 	// fmt.Println(reqBody)
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	cardMasterId := int(gjson.Parse(reqBody).Array()[0].Get("card_master_id").Int())
 	session.UserStatus.RecommendCardMasterID = cardMasterId
@@ -85,6 +88,7 @@ func SetLivePartner(ctx *gin.Context) {
 	}
 
 	// set the bit on the correct card
+	UserID := ctx.GetInt("user_id")
 	session := serverdb.GetSession(ctx, UserID)
 	newCard := session.GetUserCard(req.CardMasterID)
 	newCard.LivePartnerCategories |= (1 << req.LivePartnerCategoryID)
@@ -103,8 +107,32 @@ func SetLivePartner(ctx *gin.Context) {
 	}
 
 	session.Finalize("{}", "")
+	// this is correct, the server send {}
 	resp := SignResp(ctx.GetString("ep"), "{}", config.SessionKey)
 
+	ctx.Header("Content-Type", "application/json")
+	ctx.String(http.StatusOK, resp)
+}
+
+func SetScoreOrComboLive(ctx *gin.Context) {
+	reqBody := gjson.Parse(ctx.GetString("reqBody")).Array()[0].String()
+	type SetScoreOrComboReq struct {
+		LiveDifficultyMasterID int `json:"live_difficulty_master_id"`
+	}
+	req := SetScoreOrComboReq{}
+	err := json.Unmarshal([]byte(reqBody), &req)
+	utils.CheckErr(err)
+
+	userID := ctx.GetInt("user_id")
+	session := serverdb.GetSession(ctx, userID)
+	customSetProfile := session.GetUserCustomSetProfile()
+	if ctx.Request.URL.Path == "/userProfile/setScoreLive" {
+		customSetProfile.VoltageLiveDifficultyID = req.LiveDifficultyMasterID
+	} else {
+		customSetProfile.ComboLiveDifficultyID = req.LiveDifficultyMasterID
+	}
+	session.SetUserCustomSetProfile(customSetProfile)
+	resp := SignResp(ctx.GetString("ep"), reqBody, config.SessionKey)
 	ctx.Header("Content-Type", "application/json")
 	ctx.String(http.StatusOK, resp)
 }

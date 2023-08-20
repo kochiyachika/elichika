@@ -4,6 +4,8 @@ import (
 	"elichika/model"
 
 	"fmt"
+
+	"xorm.io/xorm"
 )
 
 func (session *Session) GetUserLiveParty(partyID int) model.UserLiveParty {
@@ -18,6 +20,17 @@ func (session *Session) GetUserLiveParty(partyID int) model.UserLiveParty {
 		panic("Party doesn't exist")
 	}
 	return liveParty
+}
+
+func (session *Session) GetUserLivePartiesWithDeckID(deckID int) []model.UserLiveParty {
+	liveParties := []model.UserLiveParty{}
+	err := Engine.Table("s_user_live_party").
+		Where("user_id = ? AND user_live_deck_id = ?", session.UserStatus.UserID, deckID).
+		OrderBy("party_id").Find(&liveParties)
+	if err != nil {
+		panic(err)
+	}
+	return liveParties
 }
 
 func (session *Session) GetUserLivePartyWithDeckAndCardID(deckID int, cardID int) model.UserLiveParty {
@@ -39,12 +52,12 @@ func (session *Session) UpdateUserLiveParty(liveParty model.UserLiveParty) {
 	session.UserLivePartyDiffs[liveParty.PartyID] = liveParty
 }
 
-func (session *Session) FinalizeUserLivePartyDiffs() []any {
+func (session *Session) FinalizeUserLivePartyDiffs(dbSession *xorm.Session) []any {
 	userLivePartyByID := []any{}
 	for userLivePartyId, userLiveParty := range session.UserLivePartyDiffs {
 		userLivePartyByID = append(userLivePartyByID, userLivePartyId)
 		userLivePartyByID = append(userLivePartyByID, userLiveParty)
-		affected, err := Engine.Table("s_user_live_party").
+		affected, err := dbSession.Table("s_user_live_party").
 			Where("user_id = ? AND party_id = ?", session.UserStatus.UserID, userLivePartyId).
 			AllCols().Update(userLiveParty)
 		if (err != nil) || (affected != 1) {
