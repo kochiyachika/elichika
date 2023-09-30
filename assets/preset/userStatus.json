@@ -1,15 +1,15 @@
 {
     "name": {
-        "dot_under_text": "梦路2号机@果果厨"
+        "dot_under_text": "千"
     },
     "nickname": {
-        "dot_under_text": "梦路"
+        "dot_under_text": "千"
     },
     "last_login_at": 1686137330,
-    "rank": 122,
-    "exp": 416854,
+    "rank": 320,
+    "exp": 33000000,
     "message": {
-        "dot_under_text": "B站主播：梦路_YumeMichi"
+        "dot_under_text": "あ"
     },
     "recommend_card_master_id": 200013001,
     "max_friend_num": 0,
@@ -21,9 +21,9 @@
     "activity_point_reset_at": 1684123200,
     "activity_point_payment_recovery_daily_count": 10,
     "activity_point_payment_recovery_daily_reset_at": 1683734400,
-    "game_money": 115779989,
-    "card_exp": 32464467,
-    "free_sns_coin": 3900,
+    "game_money": 1000000000,
+    "card_exp": 1000000000,
+    "free_sns_coin": 100000,
     "apple_sns_coin": 0,
     "google_sns_coin": 0,
     "cash": 0,
@@ -33,7 +33,7 @@
     "birth_day": 18,
     "latest_live_deck_id": 1,
     "main_lesson_deck_id": 1,
-    "favorite_member_id": 1,
+    "favorite_member_id": 3,
     "last_live_difficulty_id": 10025301,
     "lp_magnification": 1,
     "emblem_id": 10400253,
@@ -49,10 +49,10 @@
     "max_combo_live_difficulty_master_id": 12037401,
     "live_max_combo": 301,
     "lesson_resume_status": 1,
-    "accessory_box_additional": 90,
+    "accessory_box_additional": 400,
     "terms_of_use_version": 2,
     "bootstrap_sifid_check_at": 1683178908,
     "gdpr_version": 0,
-    "member_guild_member_master_id": 1,
+    "member_guild_member_master_id": 3,
     "member_guild_last_updated_at": 1659485328
 }
